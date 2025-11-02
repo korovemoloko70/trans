@@ -5,11 +5,12 @@
 #include "translate.h"
 
 int* labels = NULL;
-int labels_size = 10;
+int labels_size = 0;
 
 //получение кода регистра по его имени
 int GetRegisterCode(const char* reg, const int line_num, const char* in_file)
 {
+
     if (strcmp(reg, "AX") == 0) return REG_AX;
     else if (strcmp(reg, "BX") == 0) return REG_BX;
     else if (strcmp(reg, "CX") == 0) return REG_CX;
@@ -29,7 +30,8 @@ int GetRegisterCode(const char* reg, const int line_num, const char* in_file)
     else if (strcmp(reg, "QX") == 0) return REG_QX;
     else
     {
-        printf("File: %s, Line: %d - неизвестный регистр: '%s'\n", in_file, line_num, reg);
+        printf("\nIM in GetRegisterCod\n\n");
+        printf("File: %s, Line: %d - unknown register: '%s'\n", in_file, line_num, reg);
         return REG_ERR;
     }
 }
@@ -43,10 +45,6 @@ int ProcessPush(const char* after_command, const int line_num, const char* in_fi
         return SINTACSIS_ERR;
     }
     fprintf(out, "%d %d\n", OP_PUSH, argument);
-
-
-
-
     return SUCCESS;
 }
 
@@ -88,7 +86,7 @@ int ProcessPushr(const char* after_command, const int line_num, const char* in_f
     }
 
     int reg_code = GetRegisterCode(reg, line_num, in_file);
-    if (reg_code == -1) return REG_ERR;
+    if (reg_code != 0) return REG_ERR;
 
     fprintf(out, "%d %d\n", OP_PUSHR, reg_code);
     return SUCCESS;
@@ -105,7 +103,6 @@ int ProcessJumpCommand(const char* after_command, const int line_num, const char
     }
     if (argument >= labels_size || labels[argument] == 0)
     {
-
         printf("File: %s, Line: %d - неизвестная метка: '%s'\n", in_file, line_num, after_command);
         return SINTACSIS_ERR;
     //НАДО РАСШИРЕНИЕ?
@@ -199,28 +196,25 @@ int InputProgram(const char* in_file, const char* out_file)
         return ERR_COMANDS;
     }
 
-     printf("L172\n");//запись количества команд в выходной файл
+     //printf("L172\n");//запись количества команд в выходной файл
 
-    FILE* out = fopen(out_file, "a");
+    FILE* out = fopen(out_file, "w+");
 
     if (out == NULL)
     {
-        printf("Error: Cannot create output file %s\n", out_file);
+        printf("Error: Cannot open/create output file %s\n", out_file);
         free(buffer);
         return FILE_ERROR;
     }
     fprintf(out, "%d\n", command_number + 1);
-    fclose(out);
 
- printf("%d L181\n", command_number + 1); //SUCESSFULLY DOSHLI
-
-    if (TranslateFromBuffer(buffer, in_file, out_file) != SUCCESS)
+    if (TranslateFromBuffer(buffer, in_file, out) != SUCCESS)
     {
         free(buffer);
         return TRNSL_ERR;
     }
 
-     printf("L189\n");
+     printf("L222\n");
 
      free(buffer);
     return SUCCESS;
@@ -279,7 +273,7 @@ int NumberOfComandsAndLablesFromBuffer(char* buffer, const char* in_file, int* c
     while (*current_pos != '\0')
     {
 
-        printf("L251\n");
+        //printf("L281\n");
 
         char* line = (char*) calloc(20, sizeof(char));
         if (line == NULL)
@@ -312,14 +306,18 @@ int NumberOfComandsAndLablesFromBuffer(char* buffer, const char* in_file, int* c
             line[copy_len] = '\0';
         }                                  //строка line для работы (без комментариев)
 
+
+
         char* line_ptr = line;
         while (*line_ptr == ' ') line_ptr++;//пропускаем пробелы в начале строки
 
         //меткa. Заполняем лейблз
         if (*line_ptr == ':')
         {
+
             if (IfLabel(line_ptr, line_num, in_file, command_number) != SUCCESS)
             {
+                printf("L314\n");
                 free(line);
                 return SINTACSIS_ERR;
             }
@@ -330,7 +328,7 @@ int NumberOfComandsAndLablesFromBuffer(char* buffer, const char* in_file, int* c
         {
             (*command_number)++;
 
-            printf("298\n");
+            printf("334\n");
 
         }
         free(line);
@@ -339,11 +337,9 @@ int NumberOfComandsAndLablesFromBuffer(char* buffer, const char* in_file, int* c
 
         if (newline_pos != NULL) //те выше нашелся символ перевода строки
         {
+            printf("DEBAG: SUCCESS DONE %d LINE FROM TXT\n", line_num);
             current_pos = newline_pos + 1;//след строка
             line_num++;
-
-            printf("L313\n");
-
         }
         else
         {
@@ -366,7 +362,7 @@ int ExtendLabels(const int label_index)
         return MEMORY_ALLOCATION_ERROR;
     }
 
-    for (int i = labels_size; i < new_size; i++)//новые ячейки нулями
+    for (int i = labels_size; i < new_size; i++)//новые ячейки нулями, так как реалок при довыделении не заполняет, а при первом аргументе = null работает как малок    {
     {
         new_labels[i] = 0;
     }
@@ -377,7 +373,7 @@ int ExtendLabels(const int label_index)
 }
 
 
-int IfLabel(const char* line_ptr, const int line_num, const char* in_file, int* command_number)
+int IfLabel(const char* line_ptr, const int line_num, const char* in_file, int* command_number)//заполняем массив переходов
 {
     const char* num_ptr = line_ptr + 1;
     while (*num_ptr == ' ') num_ptr++;//пропускаем пробелы
@@ -394,37 +390,50 @@ int IfLabel(const char* line_ptr, const int line_num, const char* in_file, int* 
             }
         }
 
-        if (labels[label_index] != 0)//проверяем на дублирование
-        {
-            printf("File: %s, Line: %d - syntax error: '%s'\n", in_file, line_num, line_ptr);
+        //printf("L400\n");
+
+        if (label_index < 0 || label_index >= labels_size) {
+            printf("ERROR: Label index %d out of bounds [0, %d]\n", label_index, labels_size - 1);
             return SINTACSIS_ERR;
         }
 
+        if (labels == NULL)
+        {
+            printf("ERROR: labels is NULL!\n");
+            return MEMORY_ALLOCATION_ERROR;
+        }
+
+
+        if (labels[label_index] != 0)//проверяем на дублирование
+        {
+
+            printf("File: %s, Line: %d - syntax error(dubl): '%s'\n", in_file, line_num, line_ptr);
+            return SINTACSIS_ERR;
+        }
+
+        //printf("L410\n");
+
         labels[label_index] = *command_number + 1;//номер след команды
+
+        printf("DEBAG: MARKED %d IN %d\n", labels[label_index], label_index);
+
     }
 
     return SUCCESS;
 }
 
-int TranslateFromBuffer(char* buffer, const char* in_file, const char* out_file) //CommandDetermine
+int TranslateFromBuffer(char* buffer, const char* in_file, FILE* out) //CommandDetermine
 {
-    if (buffer == NULL || in_file == NULL || out_file == NULL)
+    if (buffer == NULL || in_file == NULL || out == NULL)
     {
         printf("Error: NULL pointer in TranslateFromBuffer\n");
         return NULL_POINTER;
     }
 
-    FILE* out = fopen(out_file, "a");
-    if (out == NULL)
-    {
-        printf("Error: Cannot open %s\n", out_file);
-        return FILE_ERROR;
-    }
-
     int line_num = 1;  // again
     char* current_pos = buffer;
 
-    printf("L375\n");
+    //printf("L444\n");
 
     while (*current_pos != '\0')
     {
@@ -476,8 +485,7 @@ int TranslateFromBuffer(char* buffer, const char* in_file, const char* out_file)
         else printf("%c", *line_ptr);
         printf("'\n");
 
-        printf("L440 {%c}\n", *line_ptr);
-        printf("L441 %c\n", *(line_ptr+1));
+        printf("L497 DEBUG: After skipping spaces: line_ptr+1 = '%c'\n", *(line_ptr+1));
 
         //ckip метки и пустые строки
         if (*line_ptr != ':' && *line_ptr != '\0')
@@ -491,11 +499,9 @@ int TranslateFromBuffer(char* buffer, const char* in_file, const char* out_file)
 
             int scanned = sscanf(line_ptr, "%19s", command);//считываем только команду до пробела или конца строки
 
-            printf("DEBUG: %d \n", strlen(command));
+            printf("DEBUG len of command: %d \n", strlen(command));
 
             command[strlen(command)] = '\0';
-
-            printf("L476\n");
 
             if (scanned == 1)//существует
             {
@@ -503,12 +509,12 @@ int TranslateFromBuffer(char* buffer, const char* in_file, const char* out_file)
                 char* after_command = line_ptr + strlen(command);
                 while (*after_command == ' ') after_command++; //теперь указатель на аргумент функции или на конец строки
             //
-           printf("L483\n");
-           printf("DEBUG: %c\n", *command);
+           printf("L501\n");
+           printf("DEBUG ptr after_command: %c\n", *after_command);
             //
                 if (strcmp(command, "PUSH") == 0)
                 {
-                    printf("L488\n");
+                    printf("L506\n");
                     if (ProcessPush(after_command, line_num, in_file, out) != SUCCESS)
                     {
                         fclose(out);
@@ -520,36 +526,79 @@ int TranslateFromBuffer(char* buffer, const char* in_file, const char* out_file)
                     if (*after_command != '\0') //проверка, что аргументов нет там, где их не должно быть. after_command указывает на то, что после пробелов после команды
                     {
                         printf("File: %s, Line: %d - syntax error: unnecessary arguments\n", in_file, line_num);
+                        fclose(out);
                         return SINTACSIS_ERR;
                     }
                     fprintf(out, "%d\n", OP_POP);
                 }
                 else if (strcmp(command, "MUL") == 0)
                 {
+                    if (*after_command != '\0') //проверка, что аргументов нет там, где их не должно быть. after_command указывает на то, что после пробелов после команды
+                    {
+                        printf("File: %s, Line: %d - syntax error: unnecessary arguments\n", in_file, line_num);
+                        fclose(out);
+                        return SINTACSIS_ERR;
+                    }
                     fprintf(out, "%d\n", OP_MUL);
                 }
                 else if (strcmp(command, "SUB") == 0)
                 {
+                    if (*after_command != '\0') //проверка, что аргументов нет там, где их не должно быть. after_command указывает на то, что после пробелов после команды
+                    {
+                        printf("File: %s, Line: %d - syntax error: unnecessary arguments\n", in_file, line_num);
+                        fclose(out);
+                        return SINTACSIS_ERR;
+                    }
                     fprintf(out, "%d\n", OP_SUB);
                 }
                 else if (strcmp(command, "DIV") == 0)
                 {
+                    if (*after_command != '\0') //проверка, что аргументов нет там, где их не должно быть. after_command указывает на то, что после пробелов после команды
+                    {
+                        printf("File: %s, Line: %d - syntax error: unnecessary arguments\n", in_file, line_num);
+                        fclose(out);
+                        return SINTACSIS_ERR;
+                    }
                     fprintf(out, "%d\n", OP_DIV);
                 }
                 else if (strcmp(command, "SQRT") == 0)
                 {
+                    if (*after_command != '\0') //проверка, что аргументов нет там, где их не должно быть. after_command указывает на то, что после пробелов после команды
+                    {
+                        printf("File: %s, Line: %d - syntax error: unnecessary arguments\n", in_file, line_num);
+                        fclose(out);
+                        return SINTACSIS_ERR;
+                    }
                     fprintf(out, "%d\n", OP_SQRT);
                 }
                 else if (strcmp(command, "OUT") == 0)
                 {
+                    if (*after_command != '\0') //проверка, что аргументов нет там, где их не должно быть. after_command указывает на то, что после пробелов после команды
+                    {
+                        printf("File: %s, Line: %d - syntax error: unnecessary arguments\n", in_file, line_num);
+                        fclose(out);
+                        return SINTACSIS_ERR;
+                    }
                     fprintf(out, "%d\n", OP_OUT);
                 }
                 else if (strcmp(command, "TOP") == 0)
                 {
+                    if (*after_command != '\0') //проверка, что аргументов нет там, где их не должно быть. after_command указывает на то, что после пробелов после команды
+                    {
+                        printf("File: %s, Line: %d - syntax error: unnecessary arguments\n", in_file, line_num);
+                        fclose(out);
+                        return SINTACSIS_ERR;
+                    }
                     fprintf(out, "%d\n", OP_TOP);
                 }
                 else if (strcmp(command, "IN") == 0)
                 {
+                    if (*after_command != '\0') //проверка, что аргументов нет там, где их не должно быть. after_command указывает на то, что после пробелов после команды
+                    {
+                        printf("File: %s, Line: %d - syntax error: unnecessary arguments\n", in_file, line_num);
+                        fclose(out);
+                        return SINTACSIS_ERR;
+                    }
                     fprintf(out, "%d\n", OP_IN);
                 }
                 else if (strcmp(command, "POPR") == 0)
@@ -571,6 +620,9 @@ int TranslateFromBuffer(char* buffer, const char* in_file, const char* out_file)
                 //jump   :d
                 else if (strcmp(command, "JB") == 0)
                 {
+
+                printf("613");
+
                     if (ProcessJumpCommand(after_command, line_num, in_file, out, OP_JB) != SUCCESS)
                     {
                         fclose(out);
@@ -667,9 +719,7 @@ int TranslateFromBuffer(char* buffer, const char* in_file, const char* out_file)
                 }
             }
         }
-        //
-        printf("L573\n");
-        //
+
         //след строка
         if (newline_pos != NULL)     //again
         {

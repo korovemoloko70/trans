@@ -69,7 +69,7 @@ long int OpenAndGetFileSize(FILE** file, const char* filename);
 int ReadFileIntoBuffer(FILE* file, long int file_size, char* buffer);
 
 int NumberOfComandsAndLablesFromBuffer(char* buffer, const char* in_file, int* command_number);
-int TranslateFromBuffer(char* buffer, const char* in_file, const char* out_file);
+int TranslateFromBuffer(char* buffer, const char* in_file, FILE* out);
 
 int ExtendLabels(const int label_index);
 int IfLabel(const char* line_ptr, const int line_num, const char* in_file, int* command_number);
