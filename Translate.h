@@ -22,8 +22,9 @@ enum OpCodes
     OP_JNE = 17,
     OP_JNP = 18,
     OP_CALL = 19,
-    OP_PUSHM = 20,
-    OP_POPM = 21,
+    OP_RET = 20,
+    OP_PUSHM = 21,
+    OP_POPM = 22,
     OP_HLT = 0
 };
 

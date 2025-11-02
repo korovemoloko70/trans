@@ -182,7 +182,7 @@ int InputProgram(const char* in_file, const char* out_file)
     {
         free(buffer);
 
-         printf("L159\n");
+         //printf("L159\n");
 
         fclose(file);
         return READ_FILE_ERR;
@@ -199,6 +199,7 @@ int InputProgram(const char* in_file, const char* out_file)
      //printf("L172\n");//запись количества команд в выходной файл
 
     FILE* out = fopen(out_file, "w+");
+    printf("\n---FILE WAS OPRENED---\n");
 
     if (out == NULL)
     {
@@ -214,7 +215,7 @@ int InputProgram(const char* in_file, const char* out_file)
         return TRNSL_ERR;
     }
 
-     printf("L222\n");
+     //printf("L222\n");
 
      free(buffer);
     return SUCCESS;
@@ -487,7 +488,7 @@ int TranslateFromBuffer(char* buffer, const char* in_file, FILE* out) //CommandD
 
         printf("L497 DEBUG: After skipping spaces: line_ptr+1 = '%c'\n", *(line_ptr+1));
 
-        //ckip метки и пустые строки
+        //скип метки и пустые строки
         if (*line_ptr != ':' && *line_ptr != '\0')
         {
             char* command = (char*) calloc(20, sizeof(char));
@@ -685,6 +686,12 @@ int TranslateFromBuffer(char* buffer, const char* in_file, FILE* out) //CommandD
                         fclose(out);
                         return SINTACSIS_ERR;
                     }
+                }
+                else if (strcmp(command, "RET") == 0)// Зацикленный CALL, это его конец
+                {
+                    fprintf(out, "%d\n", OP_RET);
+                    fclose(out);
+                    return SUCCESS;
                 }
                 //PUSHM POPM - [d]
                 else if (strcmp(command, "PUSHM") == 0)
